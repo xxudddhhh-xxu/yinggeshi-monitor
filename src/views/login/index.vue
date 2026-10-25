@@ -164,6 +164,7 @@ async function handleLogin(): Promise<void> {
     background-color: transparent;
     color: #7d93b8;
     font-size: 12px;
+    white-space: nowrap;
   }
 }
 
