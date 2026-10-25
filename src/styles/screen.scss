@@ -1,0 +1,163 @@
+// ========== 可视化大屏暗色主题 ==========
+.screen-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #04070f;
+  color: #d7e3f4;
+
+  // 等比缩放的设计画布
+  .screen-canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: center center;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(47, 107, 255, 0.18), transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, rgba(37, 208, 171, 0.1), transparent 60%),
+      #050b17;
+
+    // 网格底纹
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(64, 128, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(64, 128, 255, 0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+  }
+}
+
+// 大屏面板
+.screen-panel {
+  position: relative;
+  height: 100%;
+  padding: 34px 14px 12px;
+  background: linear-gradient(180deg, rgba(19, 38, 74, 0.55), rgba(8, 17, 34, 0.75));
+  border: 1px solid rgba(64, 128, 255, 0.22);
+  border-radius: 6px;
+  box-shadow: inset 0 0 24px rgba(24, 70, 150, 0.12);
+
+  // 面板标题
+  .panel-title {
+    position: absolute;
+    top: 6px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #eaf3ff;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 14px;
+      background: linear-gradient(180deg, #37c6ff, #2f6bff);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(55, 198, 255, 0.8);
+    }
+
+    .panel-extra {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0;
+      color: #6d84a8;
+    }
+  }
+
+  // 四角装饰
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+  &::before {
+    top: -1px;
+    right: -1px;
+    border-top: 2px solid #37c6ff;
+    border-right: 2px solid #37c6ff;
+  }
+  &::after {
+    bottom: -1px;
+    left: -1px;
+    border-bottom: 2px solid #37c6ff;
+    border-left: 2px solid #37c6ff;
+  }
+
+  .panel-body {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// 大屏数字卡片
+.screen-stat {
+  .stat-value {
+    font-size: 34px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 12px rgba(55, 198, 255, 0.45);
+  }
+
+  .stat-label {
+    margin-top: 2px;
+    font-size: 13px;
+    color: #7d93b8;
+    letter-spacing: 1px;
+  }
+
+  .stat-unit {
+    margin-left: 4px;
+    font-size: 13px;
+    font-weight: 400;
+    color: #7d93b8;
+  }
+}
+
+// 告警走马灯滚动动画
+@keyframes marquee-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.marquee-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  .marquee-list {
+    animation: marquee-up 18s linear infinite;
+  }
+
+  &:hover .marquee-list {
+    animation-play-state: paused;
+  }
+}
+
+// 告警脉冲点
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
