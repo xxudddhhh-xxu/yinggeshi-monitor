@@ -4,7 +4,8 @@
 
     <!-- 列表复制一份实现无缝衔接滚动,悬停暂停 -->
     <div v-else class="marquee-wrap">
-      <div class="marquee-list">
+      <!-- .self:NEW 徽标的 blink 动画事件会冒泡上来,只认走马灯自身的圈结束 -->
+      <div class="marquee-list" @animationiteration.self="absorbLatest">
         <div v-for="(alarm, idx) in loopList" :key="`${alarm.id}-${idx}`" class="alarm-item">
           <span class="item-dot" :style="{ background: levelColor(alarm.level) }" />
           <div class="item-body">
@@ -24,14 +25,31 @@
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { AlarmRecord } from '@/types'
 import { ALARM_LEVELS } from '@/constants'
 
 /** 实时告警走马灯:垂直无缝滚动,新告警高亮 NEW 徽标 */
 const props = defineProps<{ alarms: AlarmRecord[] }>()
 
-const loopList = computed(() => [...props.alarms, ...props.alarms])
+// 滚动展示的是数据快照:轮询推送的新列表只暂存,
+// 等动画滚完一圈(animationiteration,translateY 归零点)再整体替换,
+// 避免滚动中途条目内容突变导致的卡顿感
+const localAlarms = ref<AlarmRecord[]>([])
+
+watch(
+  () => props.alarms,
+  (list) => {
+    if (localAlarms.value.length === 0) localAlarms.value = list
+  },
+  { immediate: true }
+)
+
+function absorbLatest(): void {
+  if (props.alarms.length) localAlarms.value = props.alarms
+}
+
+const loopList = computed(() => [...localAlarms.value, ...localAlarms.value])
 
 function levelColor(level: number): string {
   return ALARM_LEVELS[level as 1 | 2 | 3]?.color ?? '#5b8ff9'

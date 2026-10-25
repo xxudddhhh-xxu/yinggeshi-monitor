@@ -143,6 +143,8 @@
 
   .marquee-list {
     animation: marquee-up 18s linear infinite;
+    // 提升为合成层,避免大画布缩放下 transform 动画掉帧
+    will-change: transform;
   }
 
   &:hover .marquee-list {
