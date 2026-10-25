@@ -3,6 +3,8 @@
 面向园区运维管理人员的能源资源监测 B 端后台 + 可视化大屏。汇聚园区各类能源设备采集数据,实现区域能耗监测、设备状态监控、异常告警推送、用能趋势分析与多维度统计报表可视化。
 
 > 技术栈:Vue 3 · TypeScript · Vite · Pinia · Vue Router · Element Plus · ECharts · Axios · SheetJS(xlsx)
+>
+> **在线演示:** https://monitor.xudonghua.online (备用地址 https://yinggeshi-monitor.pages.dev),登录账号 `admin / 123456`
 
 ## 快速开始
 
