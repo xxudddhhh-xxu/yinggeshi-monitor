@@ -26,9 +26,9 @@
       <el-tooltip content="立即刷新" placement="bottom">
         <el-icon class="header-btn" :size="18" @click="emit('refresh')"><Refresh /></el-icon>
       </el-tooltip>
-      <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
+      <el-tooltip :content="fsActive ? '退出全屏' : '全屏'" placement="bottom">
         <el-icon class="header-btn" :size="18" @click="toggleFullscreen">
-          <FullScreen v-if="!isFullscreen" />
+          <FullScreen v-if="!fsActive" />
           <Aim v-else />
         </el-icon>
       </el-tooltip>
@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 
 const props = defineProps<{
@@ -51,11 +52,19 @@ const props = defineProps<{
   interval: number
 }>()
 
-const emit = defineEmits<{ (e: 'refresh'): void }>()
+const emit = defineEmits<{
+  (e: 'refresh'): void
+  /** 伪全屏(铺满缩放)模式开关,由父级切换缩放策略 */
+  (e: 'cover', on: boolean): void
+}>()
 
 const router = useRouter()
 const now = ref(dayjs())
 const isFullscreen = ref(false)
+/** Fullscreen API 不可用(如内嵌 webview)时的降级铺满模式 */
+const isCover = ref(false)
+
+const fsActive = computed(() => isFullscreen.value || isCover.value)
 
 let timer: number | null = null
 onMounted(() => {
@@ -69,6 +78,10 @@ onBeforeUnmount(() => {
 
 function onFsChange(): void {
   isFullscreen.value = Boolean(document.fullscreenElement)
+  if (isFullscreen.value && isCover.value) {
+    isCover.value = false
+    emit('cover', false)
+  }
 }
 
 const timeText = computed(() => now.value.format('HH:mm:ss'))
@@ -79,11 +92,21 @@ function weekText(): string {
   return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.value.day()]
 }
 
-function toggleFullscreen(): void {
+async function toggleFullscreen(): Promise<void> {
   if (document.fullscreenElement) {
-    document.exitFullscreen()
-  } else {
-    document.documentElement.requestFullscreen()
+    await document.exitFullscreen()
+    return
+  }
+  try {
+    await document.documentElement.requestFullscreen()
+  } catch {
+    // 内嵌 webview 等环境禁用 Fullscreen API(requestFullscreen 静默 reject):
+    // 降级为"铺满缩放"伪全屏,超出视口的部分可滚动查看
+    isCover.value = !isCover.value
+    emit('cover', isCover.value)
+    if (isCover.value) {
+      ElMessage.warning('当前环境不支持浏览器全屏,已切换铺满模式,超出部分可滚动查看')
+    }
   }
 }
 </script>

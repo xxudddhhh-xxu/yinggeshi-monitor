@@ -6,6 +6,11 @@
   background: #04070f;
   color: #d7e3f4;
 
+  // 伪全屏铺满模式:超出视口的画布部分可滚动查看
+  &.is-cover {
+    overflow: auto;
+  }
+
   // 等比缩放的设计画布
   .screen-canvas {
     position: absolute;

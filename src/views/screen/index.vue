@@ -1,8 +1,8 @@
 <template>
-  <div class="screen-root">
+  <div ref="rootRef" class="screen-root" :class="{ 'is-cover': cover }">
     <!-- 1920x1080 设计稿画布,整体等比缩放适配任意分辨率 / 拼接屏 / 投影 -->
     <div class="screen-canvas" :style="canvasStyle">
-      <ScreenHeader :countdown="secondsLeft" :interval="INTERVAL" @refresh="refreshNow" />
+      <ScreenHeader :countdown="secondsLeft" :interval="INTERVAL" @refresh="refreshNow" @cover="onCoverToggle" />
 
       <div class="screen-body">
         <!-- 左列 -->
@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import ScreenHeader from './components/ScreenHeader.vue'
 import PanelBox from './components/PanelBox.vue'
 import ParkMap from './components/ParkMap.vue'
@@ -88,18 +88,48 @@ const DESIGN_HEIGHT = 1080
 /** 轮询周期(秒) */
 const INTERVAL = 15
 
-// ---- 等比缩放:scale = min(宽比, 高比),画布居中,黑边留白 ----
+// ---- 等比缩放:contain 整幅居中留黑边;cover(伪全屏)铺满较大边,超出可滚动 ----
 const scale = ref(1)
+/** 伪全屏铺满模式:Fullscreen API 被禁用环境下降级用 */
+const cover = ref(false)
+const rootRef = ref<HTMLElement | null>(null)
 
 function updateScale(): void {
-  scale.value = Math.min(window.innerWidth / DESIGN_WIDTH, window.innerHeight / DESIGN_HEIGHT)
+  const w = window.innerWidth
+  const h = window.innerHeight
+  // 嵌入式 webview 初始化瞬间可能读到 0 尺寸,跳过以免画布被缩成 0
+  if (!w || !h) return
+  const rw = w / DESIGN_WIDTH
+  const rh = h / DESIGN_HEIGHT
+  scale.value = cover.value ? Math.max(rw, rh) : Math.min(rw, rh)
 }
+
+// 视口尺寸监听:ResizeObserver 在嵌入式 webview 里比 resize 事件可靠(首次 observe 也会回调)
+let rootResizeObserver: ResizeObserver | null = null
 
 const canvasStyle = computed(() => ({
   width: `${DESIGN_WIDTH}px`,
   height: `${DESIGN_HEIGHT}px`,
-  transform: `translate(-50%, -50%) scale(${scale.value})`
+  ...(cover.value
+    ? // 顶部对齐铺满,纵向超出交给 .screen-root 滚动
+      { top: '0', transformOrigin: 'top center', transform: `scale(${scale.value})` }
+    : { transform: `translate(-50%, -50%) scale(${scale.value})` })
 }))
+
+function onCoverToggle(on: boolean): void {
+  cover.value = on
+  updateScale()
+  if (!on) {
+    // contain 画布的布局盒(1920x1080)本就超出视口,overflow:hidden 下 scrollTop 仍可残留,
+    // 退出铺满时复位,避免居中画布被顶出可视区
+    nextTick(() => {
+      if (rootRef.value) {
+        rootRef.value.scrollTop = 0
+        rootRef.value.scrollLeft = 0
+      }
+    })
+  }
+}
 
 // ---- 数据轮询:倒计时驱动,页签隐藏时暂停 ----
 const overview = ref<ScreenOverview | null>(null)
@@ -126,6 +156,10 @@ function refreshNow(): void {
 onMounted(() => {
   updateScale()
   window.addEventListener('resize', updateScale)
+  if (typeof ResizeObserver !== 'undefined' && rootRef.value) {
+    rootResizeObserver = new ResizeObserver(() => updateScale())
+    rootResizeObserver.observe(rootRef.value)
+  }
   fetchOverview()
   countdownTimer = window.setInterval(() => {
     if (document.hidden) return
@@ -139,6 +173,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateScale)
+  rootResizeObserver?.disconnect()
   if (countdownTimer) window.clearInterval(countdownTimer)
 })
 
